@@ -88,4 +88,7 @@ depend:
 lint:
 	lclint -booltype Bool $(SOURCES) 2> output.lint
 
+test: ff
+	./ff -o ../driverlog.pddl -f ../pfile2
+
 # DO NOT DELETE

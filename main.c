@@ -571,7 +571,6 @@ int main( int argc, char *argv[] )
     exit( 1 );
   }
 
-
   /* now instantiate operators;
    */
 
@@ -657,6 +656,25 @@ int main( int argc, char *argv[] )
   TIME( gconn_time );
   
 
+    printf("all possible actions:\n");
+    for ( i = 0; i < gnum_op_conn ; i++){
+        Action* a = gop_conn[i].action;
+
+        printf("%s", a->name);
+        for ( j = 0; j < a->num_name_vars; j++ ) {
+          printf(" %s", gconstants[a->name_inst_table[j]]);
+        }
+        printf("\n");
+    }
+    printf("all possible actions!\n\n");
+
+    printf("goal state:\n");
+    for(i=0;i<ggoal_state.num_F;i++){
+        printf("%d ",ggoal_state.F[i]);
+    }
+    printf("\ngoal state!\n");
+
+
   /***********************************************************
    * we are finally through with preprocessing and can worry *
    * bout finding a plan instead.                            *
@@ -714,6 +732,7 @@ int main( int argc, char *argv[] )
   }
 
   output_planner_info();
+
 
   printf("\n\n");
   exit( 0 );
