@@ -1,6 +1,7 @@
 key functions:
 
 1.
+
     /* function that computes state transition as induced by a
      * normalized ADL action. Adds go before deletes!
      *
