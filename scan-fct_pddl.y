@@ -108,7 +108,6 @@ static Bool sis_negated = FALSE;
 
 %start file
 
-
 %union {
 
   char string[MAX_LENGTH];
@@ -119,7 +118,6 @@ static Bool sis_negated = FALSE;
   TypedList* pTypedList;
 
 }
-
 
 %type <pstring> problem_name
 %type <pPlNode> adl_goal_description
