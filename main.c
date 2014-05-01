@@ -75,7 +75,7 @@
 #include "search.h"
 
 
-
+#include <assert.h>
 
 
 
@@ -459,6 +459,8 @@ void load_ops_file( char *filename );
 void load_fct_file( char *filename );
 
 
+void load_action_file( char* filename );
+
 
 
 
@@ -479,8 +481,106 @@ struct tms lstart, lend;
 
 
 
+int fact_action_equal(FactList* f,Action* a){
+    int num_tokens = 0;
+    TokenList* t = f->item;
+    while(t){
+        num_tokens++;
+        t = t->next;
+    }
 
+    if(num_tokens != a->num_name_vars + 1){
+        return 0;
+    }
 
+    t = f->item;
+    if(strcmp(t->item,a->name) != 0){
+        return 0;
+    }
+    t = t->next;
+
+    int i=0;
+    while(t){
+        char* s1 = t->item;
+        char* s2 = gconstants[a->name_inst_table[i]];
+
+        if(strcmp(s1,s2) != 0){
+            return 0;
+        }
+
+        t = t->next;
+        i++;
+    }
+
+    return 1;
+}
+
+FactList* g_factList;
+int gnum_actions;
+int* g_actions_indices;
+
+void build_actions_struct(){
+    int i;
+
+    gnum_actions = 0;
+    FactList* f = g_factList;
+    while(f){
+        gnum_actions++;
+
+        f = f->next;
+    }
+
+    g_actions_indices = (int*)malloc(sizeof(int)*(gnum_actions+10));
+    f = g_factList;
+    for(i=0;i<gnum_actions;i++){
+        int j;
+
+        g_actions_indices[i] = -1;
+        for(j=0;j<gnum_op_conn;j++){
+            Action* a = gop_conn[j].action;
+
+/* test */
+/*{*/
+        /*printf("action from action_file:");*/
+        /*TokenList* tmp = f->item;*/
+        /*while(tmp){*/
+            /*printf("%s ",tmp->item);*/
+
+            /*tmp = tmp->next;*/
+        /*}*/
+        /*printf("\n");*/
+
+        /*printf("action from Action:");*/
+        /*print_op_name(j);*/
+/*}*/
+
+            if(fact_action_equal(f,a)){
+                /*printf("equal!\n");*/
+
+                assert(g_actions_indices[i] == -1);
+
+                g_actions_indices[i] = j;
+                /*break;*/
+            }
+        }
+        /*assert(g_actions_indices[i] != -1);*/
+        if(g_actions_indices[i] == -1){
+            printf("illegal action found:");
+
+            TokenList* tmp = f->item;
+            while(tmp){
+                printf("%s ",tmp->item);
+
+                tmp = tmp->next;
+            }
+            printf("\n");
+
+            exit(1);
+        }
+
+        f = f->next;
+    }
+}
 
 
 int main( int argc, char *argv[] )
@@ -493,6 +593,7 @@ int main( int argc, char *argv[] )
   /* same for fct file 
    */
   char fct_file[MAX_LENGTH] = "";
+  char actions_file[MAX_LENGTH] = "";
   
   struct tms start, end;
 
@@ -522,8 +623,9 @@ int main( int argc, char *argv[] )
   /* one input name missing
    */
   if ( !gcmd_line.ops_file_name || 
-       !gcmd_line.fct_file_name ) {
-    fprintf(stdout, "\nff: two input files needed\n\n");
+       !gcmd_line.fct_file_name ||
+       !gcmd_line.actions_file_name) {
+    fprintf(stdout, "\nff: three input files needed\n\n");
     ff_usage();      
     exit( 1 );
   }
@@ -532,6 +634,7 @@ int main( int argc, char *argv[] )
    */
   sprintf(ops_file, "%s%s", gcmd_line.path, gcmd_line.ops_file_name);
   sprintf(fct_file, "%s%s", gcmd_line.path, gcmd_line.fct_file_name);
+  sprintf(actions_file, "%s%s", gcmd_line.path, gcmd_line.actions_file_name);
 
 
   /* parse the input files
@@ -558,6 +661,8 @@ int main( int argc, char *argv[] )
   if ( gcmd_line.display_info >= 1 ) {
     printf(" ... done.\n\n");
   }
+
+  load_action_file( actions_file );
 
   /* This is needed to get all types.
    */
@@ -655,24 +760,63 @@ int main( int argc, char *argv[] )
   times( &end );
   TIME( gconn_time );
   
+  build_actions_struct();
 
-    printf("all possible actions:\n");
-    for ( i = 0; i < gnum_op_conn ; i++){
-        Action* a = gop_conn[i].action;
+/*test*/
+    /*printf("all possible actions:\n");*/
+    /*for ( i = 0; i < gnum_op_conn ; i++){*/
+        /*Action* a = gop_conn[i].action;*/
 
-        printf("%s", a->name);
-        for ( j = 0; j < a->num_name_vars; j++ ) {
-          printf(" %s", gconstants[a->name_inst_table[j]]);
-        }
-        printf("\n");
+        /*printf("%s", a->name);*/
+        /*for ( j = 0; j < a->num_name_vars; j++ ) {*/
+          /*printf(" %s", gconstants[a->name_inst_table[j]]);*/
+        /*}*/
+        /*printf("\n");*/
+    /*}*/
+    /*printf("all possible actions!\n\n");*/
+
+/*test*/
+    /*printf("goal state:\n");*/
+    /*for(i=0;i<ggoal_state.num_F;i++){*/
+        /*printf("%d ",ggoal_state.F[i]);*/
+    /*}*/
+    /*printf("\ngoal state!\n");*/
+
+    State cur_state;
+    make_state(&cur_state, gnum_ft_conn);
+    source_to_dest( &(cur_state), &ginitial_state );
+    for(i=0;i<gnum_actions;i++){
+        State next_state;
+        make_state(&next_state, gnum_ft_conn);
+        result_to_dest(&next_state,&cur_state,g_actions_indices[i]);
+
+        source_to_dest(&cur_state,&next_state);
     }
-    printf("all possible actions!\n\n");
 
-    printf("goal state:\n");
+    int h = 0;
     for(i=0;i<ggoal_state.num_F;i++){
-        printf("%d ",ggoal_state.F[i]);
+        int member = 0;
+
+        for(j=0;j<cur_state.num_F;j++){
+            if(cur_state.F[j] == ggoal_state.F[i]){
+                member = 1;
+                break;
+            }
+        }
+
+        if(!member){
+            h = 1;
+            break;
+        }
     }
-    printf("\ngoal state!\n");
+
+    if(h == 0){
+        printf("\nTRUE\n");
+    } else {
+        printf("\nFALSE\n");
+    }
+
+    return 0;
 
 
   /***********************************************************
@@ -911,6 +1055,7 @@ Bool process_command_line( int argc, char *argv[] )
   
   memset(gcmd_line.ops_file_name, 0, MAX_LENGTH);
   memset(gcmd_line.fct_file_name, 0, MAX_LENGTH);
+  memset(gcmd_line.actions_file_name, 0, MAX_LENGTH);
   memset(gcmd_line.path, 0, MAX_LENGTH);
 
   while ( --argc && ++argv ) {
@@ -931,6 +1076,9 @@ Bool process_command_line( int argc, char *argv[] )
 	case 'f':
 	  strncpy( gcmd_line.fct_file_name, *argv, MAX_LENGTH );
 	  break;
+    case 'a':
+      strncpy( gcmd_line.actions_file_name, *argv, MAX_LENGTH);
+      break;
 	case 'i':
 	  sscanf( *argv, "%d", &gcmd_line.display_info );
 	  break;

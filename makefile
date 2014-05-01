@@ -23,10 +23,13 @@ PDDL_PARSER_SRC	= scan-fct_pddl.tab.c \
 	scan-ops_pddl.tab.c \
 	scan-probname.tab.c \
 	lex.fct_pddl.c \
-	lex.ops_pddl.c 
+	lex.ops_pddl.c \
+	lex.action.c \
+	scan-action.tab.c
 
 PDDL_PARSER_OBJ = scan-fct_pddl.tab.o \
-	scan-ops_pddl.tab.o 
+	scan-ops_pddl.tab.o \
+	scan-action.tab.o
 
 
 SOURCES 	= main.c \
@@ -64,11 +67,19 @@ scan-fct_pddl.tab.c: scan-fct_pddl.y lex.fct_pddl.c
 scan-ops_pddl.tab.c: scan-ops_pddl.y lex.ops_pddl.c
 	bison -pops_pddl -bscan-ops_pddl scan-ops_pddl.y
 
+lex.action.c: lex-action.l
+	flex -Paction lex-action.l
+
+scan-action.tab.c: scan-action.y lex.action.c
+	bison -bscan-action -paction scan-action.y
+
+
 lex.fct_pddl.c: lex-fct_pddl.l
 	flex -Pfct_pddl lex-fct_pddl.l
 
 lex.ops_pddl.c: lex-ops_pddl.l
 	flex -Pops_pddl lex-ops_pddl.l
+
 
 
 # misc
@@ -80,6 +91,7 @@ veryclean: clean
 	rm -f ff H* J* K* L* O* graph.* *.symbex gmon.out \
 	$(PDDL_PARSER_SRC) \
 	lex.fct_pddl.c lex.ops_pddl.c lex.probname.c \
+	lex.action.c scan-action.tab.c \
 	*.output
 
 depend:
@@ -89,6 +101,6 @@ lint:
 	lclint -booltype Bool $(SOURCES) 2> output.lint
 
 test: ff
-	./ff -o ../driverlog.pddl -f ../pfile2
+	./ff -o ../driverlog.pddl -f ../pfile1 -a ../actions
 
 # DO NOT DELETE

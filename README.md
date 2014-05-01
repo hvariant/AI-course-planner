@@ -45,7 +45,3 @@ key functions:
       }
 
     }
-
-4.  //heuristic evaluation function( if goal state is satisfied, return 0)
-
-    h = get_1P( S, &ggoal_state );
